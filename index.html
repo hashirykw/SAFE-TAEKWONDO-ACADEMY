@@ -60,8 +60,15 @@
   --r-sm:12px;
   --shell:1180px;
   --hero-ground:radial-gradient(120% 90% at 78% 8%, #0B6D74 0%, #03454F 46%, #022B33 100%);
+  --ease:cubic-bezier(.22,.78,.2,1);
+  --glass-on-dark:rgba(255,255,255,.075);
+  --glass-on-dark-brd:rgba(255,255,255,.2);
+  --glass-on-light:rgba(255,255,255,.58);
+  --glass-on-light-brd:rgba(255,255,255,.7);
 }
 [data-theme="dark"]{
+  --glass-on-light:rgba(8,42,49,.55);
+  --glass-on-light-brd:rgba(129,221,207,.18);
   --paper:#041C21;
   --card:#07272E;
   --ink:#EAF6F4;
@@ -75,6 +82,7 @@
 }
 
 *{ -webkit-tap-highlight-color:transparent }
+section[id],footer{ scroll-margin-top:88px }
 html{ scroll-behavior:smooth }
 html.lenis{ scroll-behavior:auto }
 body{
@@ -183,6 +191,32 @@ img{ max-width:100% }
 }
 .icon-btn:hover{ border-color:var(--brand); color:var(--brand) }
 .icon-btn:focus-visible{ outline:3px solid var(--mint); outline-offset:2px }
+
+/* ---------- glass surfaces (used in two places only, on purpose) ---------- */
+.glass{
+  background:var(--glass-on-dark);
+  backdrop-filter:blur(20px) saturate(1.7);
+  -webkit-backdrop-filter:blur(20px) saturate(1.7);
+  border:1px solid var(--glass-on-dark-brd);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22), 0 26px 60px -34px rgba(2,27,32,.75);
+}
+.glass--light{
+  background:var(--glass-on-light);
+  border-color:var(--glass-on-light-brd);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 24px 56px -34px rgba(2,65,74,.42);
+}
+
+/* ---------- reading progress ---------- */
+#prog{
+  position:fixed; inset:0 0 auto; z-index:1250; height:3px;
+  background:transparent; pointer-events:none;
+}
+#prog i{
+  display:block; height:100%; width:0;
+  background:linear-gradient(90deg,var(--brand),var(--mint));
+  box-shadow:0 0 12px rgba(129,221,207,.55);
+  transition:width .12s linear;
+}
 
 /* ---------- reveals ---------- */
 [data-reveal]{ opacity:0; transform:translateY(20px); transition:opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); transition-delay:calc(var(--i,0) * 70ms) }
@@ -487,18 +521,107 @@ img{ max-width:100% }
 .notice p{ margin:0; font-size:.93rem; color:var(--ink) }
 .notice a{ color:var(--brand); font-weight:600 }
 
-/* ---------- belt path ---------- */
-.belts{ display:grid; gap:2px; margin-top:1.8rem; border-radius:var(--r-md); overflow:hidden; border:1px solid var(--line-soft) }
-.belt{
-  display:grid; grid-template-columns:74px 1fr auto; align-items:center; gap:1rem;
-  background:var(--card); padding:1rem 1.2rem;
-  transition:background .25s;
+/* ---------- belt studio: 3D belt + glass level card ---------- */
+.studio{
+  position:relative; isolation:isolate;
+  margin-top:1.9rem;
+  border-radius:var(--r-lg); overflow:hidden;
+  background:var(--hero-ground);
+  padding:clamp(.9rem,2.2vw,1.5rem);
+  display:grid; gap:clamp(.9rem,2vw,1.4rem);
+  grid-template-columns:1.04fr .96fr;
+  align-items:stretch;
 }
-.belt:hover{ background:rgba(129,221,207,.09) }
-.belt .swatch{ height:13px; border-radius:999px; box-shadow:inset 0 0 0 1px rgba(2,65,74,.16) }
-.belt h4{ font-family:"Outfit",sans-serif; font-weight:700; font-size:1rem; margin:0 }
-.belt p{ margin:0; font-size:.88rem; color:var(--steel) }
-.belt .gup{ font-family:"Outfit",sans-serif; font-weight:700; color:var(--steel); font-size:.88rem; font-variant-numeric:tabular-nums }
+.studio::before{
+  content:""; position:absolute; inset:0; z-index:-1; opacity:.45;
+  background-image:
+    linear-gradient(rgba(129,221,207,.08) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(129,221,207,.08) 1px,transparent 1px);
+  background-size:46px 46px;
+  mask-image:radial-gradient(110% 80% at 30% 10%,#000 18%,transparent 76%);
+}
+.studio-stage{ position:relative; min-height:clamp(330px,44vh,460px); border-radius:var(--r-md) }
+.studio-stage canvas{ display:block; width:100%; height:100%; cursor:grab; touch-action:pan-y }
+.studio-stage canvas:active{ cursor:grabbing }
+.studio-stage::after{
+  content:""; position:absolute; left:50%; bottom:7%;
+  width:54%; height:16px; transform:translateX(-50%);
+  background:radial-gradient(50% 50%,rgba(0,0,0,.5),transparent 72%);
+  filter:blur(8px); pointer-events:none;
+}
+/* no-WebGL fallback: the belt as a flat stack of bands */
+.belt-fallback{
+  position:absolute; inset:0; display:grid; place-content:center; gap:.55rem;
+  pointer-events:none; transition:opacity .7s var(--ease);
+}
+.studio-stage.live .belt-fallback{ opacity:0 }
+.belt-fallback span{
+  display:block; width:clamp(130px,26vw,200px); height:16px; border-radius:999px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.2);
+}
+
+.belt-card{
+  border-radius:var(--r-md);
+  padding:clamp(1.2rem,2.6vw,1.8rem);
+  color:#fff;
+  display:flex; flex-direction:column; gap:.75rem;
+}
+.bc-top{ display:flex; align-items:center; gap:.6rem; flex-wrap:wrap }
+.bc-gup{
+  font-family:"Outfit",sans-serif; font-weight:700; font-size:.82rem;
+  padding:.28rem .68rem; border-radius:999px;
+  background:rgba(129,221,207,.16); border:1px solid rgba(129,221,207,.3);
+  color:var(--mint);
+}
+.bc-step{ margin-left:auto; font-size:.8rem; color:rgba(255,255,255,.55); font-variant-numeric:tabular-nums }
+.bc-swatch{
+  width:100%; height:8px; border-radius:999px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.28);
+  transition:background .55s var(--ease);
+}
+.belt-card h3{ color:#fff; margin:0 }
+.bc-mean{ color:var(--mint); font-size:.95rem; margin:0 }
+.bc-body{ color:rgba(255,255,255,.76); font-size:.95rem; margin:0 }
+.bc-list{ list-style:none; margin:.1rem 0 0; padding:0; display:grid; gap:.42rem }
+.bc-list li{ display:flex; gap:.55rem; align-items:flex-start; font-size:.92rem; color:rgba(255,255,255,.8) }
+.bc-list li i{ color:var(--mint); font-size:.8rem; margin-top:.34rem; flex:none }
+/* content swap: fade and lift, not a hard cut */
+.bc-swap{ display:flex; flex-direction:column; gap:.55rem; transition:opacity .3s var(--ease), transform .3s var(--ease) }
+.bc-swap.out{ opacity:0; transform:translateY(8px) }
+.bc-nav{ display:flex; gap:.5rem; margin-top:auto; padding-top:.9rem }
+.bc-nav button{
+  flex:1; min-height:46px; border-radius:999px; cursor:pointer;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.22);
+  color:#fff; font-family:"Outfit",sans-serif; font-weight:600; font-size:.95rem;
+  display:inline-flex; align-items:center; justify-content:center; gap:.45rem;
+  transition:background .25s var(--ease), transform .25s var(--ease), opacity .25s;
+}
+.bc-nav button:hover{ background:rgba(129,221,207,.2) }
+.bc-nav button:active{ transform:scale(.97) }
+.bc-nav button[disabled]{ opacity:.35; cursor:default }
+
+/* the rail doubles as the colour order and the selector */
+.belt-rail{
+  grid-column:1/-1;
+  display:grid; grid-template-columns:repeat(6,1fr); gap:.5rem;
+}
+.belt-chip{
+  position:relative; cursor:pointer; text-align:left;
+  border-radius:14px; padding:.7rem .75rem .6rem;
+  background:rgba(255,255,255,.055); border:1px solid rgba(255,255,255,.14);
+  color:rgba(255,255,255,.72);
+  transition:background .28s var(--ease), border-color .28s var(--ease), transform .28s var(--ease), color .28s;
+}
+.belt-chip:hover{ background:rgba(255,255,255,.1); transform:translateY(-2px) }
+.belt-chip[aria-selected="true"]{
+  background:rgba(129,221,207,.16); border-color:rgba(129,221,207,.45); color:#fff;
+}
+.belt-chip .bar{
+  display:block; height:7px; border-radius:999px; margin-bottom:.5rem;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.26);
+}
+.belt-chip b{ display:block; font-family:"Outfit",sans-serif; font-weight:700; font-size:.92rem; letter-spacing:-.01em }
+.belt-chip span{ font-size:.74rem; color:rgba(255,255,255,.5); font-variant-numeric:tabular-nums }
 
 /* ---------- gallery ---------- */
 .gal{ display:grid; gap:14px; grid-template-columns:repeat(3,1fr) }
@@ -536,10 +659,14 @@ img{ max-width:100% }
 .vid span{ font-size:.84rem; color:var(--steel) }
 
 /* ---------- quiz ---------- */
+#quiz{
+  background:
+    radial-gradient(58% 54% at 10% 2%,rgba(129,221,207,.58),transparent 64%),
+    radial-gradient(54% 64% at 95% 98%,rgba(2,104,116,.3),transparent 62%),
+    radial-gradient(42% 42% at 72% 18%,rgba(23,149,142,.24),transparent 66%);
+}
 .quiz{
-  background:var(--card); border:1px solid var(--line);
   border-radius:var(--r-lg); padding:clamp(1.4rem,3.5vw,2.4rem);
-  box-shadow:var(--shadow-card);
 }
 .qbar{ height:4px; border-radius:999px; background:var(--line-soft); overflow:hidden; margin-bottom:1.3rem }
 .qbar i{ display:block; height:100%; width:33%; border-radius:999px; background:linear-gradient(90deg,var(--brand),var(--mint)); transition:width .45s cubic-bezier(.2,.8,.2,1) }
@@ -708,6 +835,8 @@ img{ max-width:100% }
   .burger{ display:inline-grid }
   .hero-in{ grid-template-columns:1fr }
   .story-grid,.ct-grid{ grid-template-columns:1fr }
+  .studio{ grid-template-columns:1fr }
+  .belt-rail{ grid-template-columns:repeat(3,1fr) }
   .gal{ grid-template-columns:repeat(2,1fr) }
   .gal figure.tall{ grid-row:auto; aspect-ratio:4/5 }
   .appbar{ display:grid }
@@ -743,8 +872,15 @@ img{ max-width:100% }
   .slot-rail::-webkit-scrollbar{ display:none }
   .slot{ scroll-snap-align:center }
 
-  .belt{ grid-template-columns:52px 1fr; gap:.8rem; padding:.85rem 1rem }
-  .belt .gup{ grid-column:2; grid-row:2; justify-self:start; margin-top:-.2rem }
+  .studio{ padding:.7rem }
+  .studio-stage{ min-height:min(46vh,330px) }
+  .belt-card{ padding:1.15rem 1.05rem }
+  .belt-rail{
+    grid-auto-flow:column; grid-auto-columns:33%; grid-template-columns:none;
+    overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; gap:.45rem;
+  }
+  .belt-rail::-webkit-scrollbar{ display:none }
+  .belt-chip{ scroll-snap-align:center }
 
   .sec{ padding-block:2.9rem }
   .d2{ font-size:clamp(1.95rem,8vw,2.5rem) }
@@ -795,6 +931,8 @@ img{ max-width:100% }
     <path d="M73.09 98.28 A28 28 0 0 1 107.72 79.09" fill="none" stroke-linecap="round" stroke-width="15"/>
   </symbol>
 </svg>
+
+<div id="prog" aria-hidden="true"><i></i></div>
 
 <!-- ===== PRELOADER ===== -->
 <div id="pre">
@@ -1053,44 +1191,46 @@ img{ max-width:100% }
   </div>
 </section>
 
-<!-- ===== BELT LADDER ===== -->
+<!-- ===== BELT LADDER — 3D belt, glass level card ===== -->
 <section class="sec" id="belts">
   <div class="shell">
     <p class="kick" data-reveal>The belt ladder</p>
     <h2 class="d2" data-reveal style="--i:1">Six colours between you and black.</h2>
-    <p class="lede mt-3" data-reveal style="--i:2">This is the standard colour order in taekwondo, counting down from tenth <em>gup</em> to first. How long each step takes depends on how often you train and when the academy holds its next grading — ask your instructor for the schedule.</p>
+    <p class="lede mt-3" data-reveal style="--i:2">Pick a belt and the one in the panel ties itself in that colour. Turn it with a finger. The <em>gup</em> numbers and forms below are the standard taekwondo order — every academy sets its own grading schedule, so ask your instructor when your test is.</p>
 
-    <div class="belts" data-reveal>
-      <div class="belt">
-        <span class="swatch" style="background:#F4F4F2"></span>
-        <div><h4>White</h4><p>Day one. Stance, blocks, how to bow onto the floor.</p></div>
-        <span class="gup">10th gup</span>
+    <div class="studio" data-reveal style="--i:3">
+      <div class="studio-stage" id="beltStage">
+        <canvas id="belt3d" aria-hidden="true"></canvas>
+        <div class="belt-fallback" id="beltFallback" aria-hidden="true">
+          <span style="background:#F2F0EA"></span>
+          <span style="background:#F2C438"></span>
+          <span style="background:#2E9E52"></span>
+          <span style="background:#2C6FC4"></span>
+          <span style="background:#C8392F"></span>
+          <span style="background:#16181C"></span>
+        </div>
+        <span class="spin-hint" id="beltHint"><i class="bi bi-arrow-repeat"></i> Drag to turn the belt</span>
       </div>
-      <div class="belt">
-        <span class="swatch" style="background:#F2C438"></span>
-        <div><h4>Yellow</h4><p>The first form, and kicks that land where you aimed them.</p></div>
-        <span class="gup">8th gup</span>
+
+      <div class="belt-card glass" role="tabpanel" aria-live="polite">
+        <div class="bc-top">
+          <span class="bc-gup" id="bcGup">10th gup</span>
+          <span class="bc-step" id="bcStep">1 of 6</span>
+        </div>
+        <span class="bc-swatch" id="bcSwatch" style="background:#F2F0EA"></span>
+        <div class="bc-swap" id="bcSwap">
+          <h3 class="d3" id="bcName">White</h3>
+          <p class="bc-mean" id="bcMean">Innocence — a student with no knowledge of taekwondo yet.</p>
+          <p class="bc-body" id="bcBody">Day one. You learn how to stand, how to block, and how to bow onto the floor before anyone teaches you to kick.</p>
+          <ul class="bc-list" id="bcList"></ul>
+        </div>
+        <div class="bc-nav">
+          <button id="bcPrev" type="button"><i class="bi bi-arrow-left"></i> Previous</button>
+          <button id="bcNext" type="button">Next belt <i class="bi bi-arrow-right"></i></button>
+        </div>
       </div>
-      <div class="belt">
-        <span class="swatch" style="background:#3AA35A"></span>
-        <div><h4>Green</h4><p>Combinations, turning kicks, first taste of controlled sparring.</p></div>
-        <span class="gup">6th gup</span>
-      </div>
-      <div class="belt">
-        <span class="swatch" style="background:#2C6FC4"></span>
-        <div><h4>Blue</h4><p>Speed and distance. Forms get longer and less forgiving.</p></div>
-        <span class="gup">4th gup</span>
-      </div>
-      <div class="belt">
-        <span class="swatch" style="background:#C8392F"></span>
-        <div><h4>Red</h4><p>Senior grade. You start correcting juniors as part of your own training.</p></div>
-        <span class="gup">2nd gup</span>
-      </div>
-      <div class="belt">
-        <span class="swatch" style="background:linear-gradient(90deg,#14181B 70%,#C8392F)"></span>
-        <div><h4>Black</h4><p>The beginning of the real syllabus, not the end of it.</p></div>
-        <span class="gup">1st dan</span>
-      </div>
+
+      <div class="belt-rail" id="beltRail" role="tablist" aria-label="Belt colours"></div>
     </div>
   </div>
 </section>
@@ -1138,7 +1278,7 @@ img{ max-width:100% }
       <h2 class="d2">Not sure where you'd fit?</h2>
       <p class="lede mx-auto mt-3">Three questions. It points you at one class and writes the WhatsApp message for you.</p>
     </div>
-    <div class="quiz" data-reveal style="--i:1">
+    <div class="quiz glass glass--light" data-reveal style="--i:1">
       <div class="qbar"><i id="qFill"></i></div>
       <p class="qstep" id="qStep">Question 1 of 3</p>
       <h3 class="d3 mb-4" id="qTitle">Who is this for?</h3>
@@ -1538,6 +1678,99 @@ if (canHover && window.gsap) {
   paint(); setInterval(paint, 60000);
 })();
 
+/* ---------- reading progress ---------- */
+(() => {
+  const bar = $('#prog i');
+  const paint = () => {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    bar.style.width = (max > 0 ? Math.min(100, (scrollY / max) * 100) : 0) + '%';
+  };
+  addEventListener('scroll', paint, { passive: true });
+  addEventListener('resize', paint);
+  paint();
+})();
+
+/* ---------- belt studio ----------
+   The colour order and gup numbers are the standard taekwondo ladder.
+   Grading schedules differ per academy, so nothing here claims a timeline. */
+const BELTS = [
+  { name: 'White',  gup: '10th gup', hex: '#F2F0EA',
+    mean: 'Innocence — a student with no knowledge of taekwondo yet.',
+    body: 'Day one. You learn how to stand, how to block, and how to bow onto the floor before anyone teaches you to kick.',
+    list: ['Basic stances and blocks', 'Floor etiquette and bowing', 'Kibon — the foundation movements'] },
+  { name: 'Yellow', gup: '8th gup', hex: '#F2C438',
+    mean: 'Earth — where a seed takes root as the foundations are laid.',
+    body: 'The first real form, and the point where kicks start landing where you aimed them rather than near it.',
+    list: ['Taegeuk Il Jang, the first form', 'Front and roundhouse kick shape', 'Holding a stance under fatigue'] },
+  { name: 'Green',  gup: '6th gup', hex: '#2E9E52',
+    mean: "Growth — the plant coming up as the student's skill develops.",
+    body: 'Combinations start replacing single techniques, turning kicks appear, and you get your first taste of controlled sparring.',
+    list: ['Turning and spinning kicks', 'Two and three-technique combinations', 'Light, supervised sparring'] },
+  { name: 'Blue',   gup: '4th gup', hex: '#2C6FC4',
+    mean: 'Sky — what the plant grows towards as training reaches higher.',
+    body: 'Speed and distance become the lesson. Forms get longer and much less forgiving of a sloppy stance.',
+    list: ['Longer forms, held precisely', 'Timing and distance control', 'Faster sparring rounds'] },
+  { name: 'Red',    gup: '2nd gup', hex: '#C8392F',
+    mean: 'Danger — control matters now, for you and for your partner.',
+    body: 'Senior grade. You start correcting juniors on the floor, and teaching a movement becomes part of learning it properly.',
+    list: ['Advanced forms and kick chains', 'Control and restraint in sparring', 'Helping junior belts drill'] },
+  { name: 'Black',  gup: '1st dan', hex: '#16181C',
+    mean: 'Maturity — the opposite of white, and proficiency in the art.',
+    body: 'The beginning of the real syllabus, not the end of it. First dan means you are finally ready to be taught properly.',
+    list: ['Black belt forms begin', 'Full sparring syllabus', 'Assisting and, in time, instructing'] }
+];
+
+(() => {
+  const rail = $('#beltRail');
+  if (!rail) return;
+  rail.innerHTML = BELTS.map((b, n) => `
+    <button class="belt-chip" role="tab" data-n="${n}" aria-selected="${n === 0}">
+      <span class="bar" style="background:${b.hex}"></span>
+      <b>${b.name}</b><span>${b.gup}</span>
+    </button>`).join('');
+
+  const swap = $('#bcSwap');
+  let at = 0;
+
+  const show = (n) => {
+    n = Math.max(0, Math.min(BELTS.length - 1, n));
+    const b = BELTS[n];
+    at = n;
+    $$('.belt-chip', rail).forEach((c) => c.setAttribute('aria-selected', String(+c.dataset.n === n)));
+    $('#bcSwatch').style.background = b.hex;
+    $('#bcGup').textContent = b.gup;
+    $('#bcStep').textContent = `${n + 1} of ${BELTS.length}`;
+    $('#bcPrev').disabled = n === 0;
+    $('#bcNext').disabled = n === BELTS.length - 1;
+    /* fade the copy out, replace it, fade back in */
+    const fill = () => {
+      $('#bcName').textContent = b.name;
+      $('#bcMean').textContent = b.mean;
+      $('#bcBody').textContent = b.body;
+      $('#bcList').innerHTML = b.list.map((l) => `<li><i class="bi bi-dot"></i>${l}</li>`).join('');
+    };
+    if (reduced) { fill(); }
+    else {
+      swap.classList.add('out');
+      setTimeout(() => { fill(); swap.classList.remove('out'); }, 190);
+    }
+    /* the 3D belt listens for this and tweens to the new colour */
+    dispatchEvent(new CustomEvent('belt:change', { detail: { hex: b.hex, index: n } }));
+  };
+
+  rail.addEventListener('click', (e) => {
+    const c = e.target.closest('.belt-chip');
+    if (c) show(+c.dataset.n);
+  });
+  $('#bcPrev').addEventListener('click', () => show(at - 1));
+  $('#bcNext').addEventListener('click', () => show(at + 1));
+  rail.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') { show(at + 1); rail.querySelector('[aria-selected="true"]').focus(); }
+    if (e.key === 'ArrowLeft')  { show(at - 1); rail.querySelector('[aria-selected="true"]').focus(); }
+  });
+  show(0);
+})();
+
 /* ---------- quiz ---------- */
 (() => {
   const Q = [
@@ -1676,134 +1909,126 @@ $('#yr').textContent = new Date().getFullYear();
 </script>
 
 <!-- ===================================================================
-     THE SIGNATURE ELEMENT
-     The academy's own logo mark, extruded into three solid blades you
-     can spin with a finger or the mouse. Lazy-loaded, DPR-capped,
-     paused off-screen, disposed on unload, and it degrades to the flat
-     SVG mark if WebGL is unavailable.
+     TWO 3D SCENES, ONE MODULE
+     1. the hero — the academy's logo mark extruded into solid blades
+     2. the belt studio — a tied taekwondo belt that takes the colour of
+        whichever level you pick
+     Both share one lazy three.js import, cap DPR, pause off-screen,
+     dispose on unload, and degrade to flat markup without WebGL.
      =================================================================== -->
 <script type="module">
-const stage  = document.getElementById('stage');
-const canvas = document.getElementById('blade3d');
-const hint   = document.getElementById('spinHint');
 const slowMo = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const narrow = matchMedia('(max-width:767px)').matches;
 
-let started = false;
-const gate = new IntersectionObserver((es) => {
-  if (!es[0].isIntersecting || started) return;
-  started = true; gate.disconnect();
-  boot().catch(() => { /* leave the SVG fallback in place */ });
-}, { rootMargin: '200px' });
-gate.observe(stage);
+let threePromise = null;
+const loadThree = () => (threePromise ||= import('three'));
 
-async function boot() {
-  const THREE = await import('three');
+/* boot a scene the first time its container comes near the viewport */
+const gate = (el, boot) => {
+  if (!el) return;
+  let done = false;
+  const io = new IntersectionObserver((es) => {
+    if (!es[0].isIntersecting || done) return;
+    done = true; io.disconnect();
+    boot().catch(() => { /* the flat fallback stays visible */ });
+  }, { rootMargin: '250px' });
+  io.observe(el);
+};
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
+const makeRenderer = (THREE, canvas) => {
+  const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+  r.setPixelRatio(Math.min(devicePixelRatio, 2));
+  r.outputColorSpace = THREE.SRGBColorSpace;
+  return r;
+};
 
-  const scene  = new THREE.Scene();
+/* Drag to spin, with inertia. On touch the gesture is only taken once it
+   reads as horizontal, so a straight vertical swipe still scrolls.     */
+const spinnable = (canvas, hint, st) => {
+  let dragging = false, claimed = false, px = 0, py = 0, moved = 0;
+  const down = (e) => { dragging = true; claimed = false; moved = 0; px = e.clientX; py = e.clientY; canvas.style.cursor = 'grabbing'; };
+  const move = (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - px, dy = e.clientY - py;
+    moved += Math.abs(dx) + Math.abs(dy);
+    if (!claimed) {
+      if (e.pointerType === 'touch' && Math.abs(dy) > Math.abs(dx) * 1.25 && Math.abs(dy) > 6) { dragging = false; return; }
+      if (Math.abs(dx) + Math.abs(dy) > 3) { claimed = true; try { canvas.setPointerCapture(e.pointerId); } catch {} }
+    }
+    px = e.clientX; py = e.clientY;
+    st.velY = dx * 0.0062;
+    st.velX = dy * 0.0042;
+    if (moved > 26) hint?.classList.add('gone');
+  };
+  const up = () => { dragging = false; claimed = false; canvas.style.cursor = 'grab'; };
+  canvas.addEventListener('pointerdown', down);
+  canvas.addEventListener('pointermove', move);
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => canvas.addEventListener(t, up));
+  if (!slowMo) setTimeout(() => hint?.classList.add('gone'), 9000);
+  return () => dragging;
+};
+
+/* ==================================================================
+   1. HERO — the logo mark as three solid blades
+   ================================================================== */
+gate(document.getElementById('stage'), async () => {
+  const THREE = await loadThree();
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('blade3d');
+  const renderer = makeRenderer(THREE, canvas);
+
+  const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 60);
   camera.position.set(0, 0, narrow ? 9.1 : 7.9);
 
-  /* ---- the three blades, coloured along the logo's gradient ---- */
-  const pivot = new THREE.Group();
-  const art   = new THREE.Group();
-  pivot.add(art);
-  scene.add(pivot);
+  const pivot = new THREE.Group(), art = new THREE.Group();
+  pivot.add(art); scene.add(pivot);
   pivot.rotation.x = -0.13;
   art.position.set(1.52, -1.14, -0.23);
 
-  const A0 = THREE.MathUtils.degToRad(96);
-  const A1 = THREE.MathUtils.degToRad(192);
-
+  const A0 = THREE.MathUtils.degToRad(96), A1 = THREE.MathUtils.degToRad(192);
   const sector = (rIn, rOut) => {
     const s = new THREE.Shape();
     s.absarc(0, 0, rOut, A0, A1, false);
-    s.absarc(0, 0, rIn,  A1, A0, true);
+    s.absarc(0, 0, rIn, A1, A0, true);
     return new THREE.ExtrudeGeometry(s, {
       depth: 0.46, curveSegments: narrow ? 34 : 64,
       bevelEnabled: true, bevelThickness: 0.075, bevelSize: 0.075, bevelSegments: 3
     });
   };
 
-  const spec = [
-    { r: [2.48, 3.12], c: 0x02414A, e: 0x000000 },
-    { r: [1.56, 2.06], c: 0x0E7B7F, e: 0x02282C },
-    { r: [0.70, 1.13], c: 0x81DDCF, e: 0x1E5E58 }
-  ];
   const junk = [];
-  spec.forEach(({ r, c, e }) => {
+  [{ r: [2.48, 3.12], c: 0x02414A, e: 0x000000 },
+   { r: [1.56, 2.06], c: 0x0E7B7F, e: 0x02282C },
+   { r: [0.70, 1.13], c: 0x81DDCF, e: 0x1E5E58 }].forEach(({ r, c, e }) => {
     const g = sector(r[0], r[1]);
     const m = new THREE.MeshStandardMaterial({ color: c, emissive: e, metalness: 0.44, roughness: 0.3 });
-    art.add(new THREE.Mesh(g, m));
-    junk.push(g, m);
+    art.add(new THREE.Mesh(g, m)); junk.push(g, m);
   });
 
-  /* ---- light: one key, two brand-coloured rims ---- */
   scene.add(new THREE.AmbientLight(0x9FDCD6, 0.55));
-  const key = new THREE.DirectionalLight(0xFFFFFF, 1.75);
-  key.position.set(3.4, 4.4, 4.2);
-  scene.add(key);
+  const key = new THREE.DirectionalLight(0xFFFFFF, 1.75); key.position.set(3.4, 4.4, 4.2); scene.add(key);
   const rimA = new THREE.PointLight(0x81DDCF, 42, 20, 2); rimA.position.set(-3.4, 2.2, 3.2); scene.add(rimA);
   const rimB = new THREE.PointLight(0x0E7B7F, 26, 20, 2); rimB.position.set(3.2, -2.6, -1.8); scene.add(rimB);
 
-  /* ---- a little dust so the teal field isn't empty ---- */
   let dust = null;
   if (!slowMo) {
-    const N = narrow ? 260 : 620;
-    const pos = new Float32Array(N * 3);
+    const N = narrow ? 260 : 620, pos = new Float32Array(N * 3);
     for (let i = 0; i < N; i++) {
-      pos[i * 3]     = (Math.random() - 0.5) * 15;
+      pos[i * 3] = (Math.random() - 0.5) * 15;
       pos[i * 3 + 1] = (Math.random() - 0.5) * 10;
       pos[i * 3 + 2] = (Math.random() - 0.5) * 7 - 2;
     }
     const dg = new THREE.BufferGeometry();
     dg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     const dm = new THREE.PointsMaterial({ color: 0x81DDCF, size: 0.035, transparent: true, opacity: 0.42, depthWrite: false });
-    dust = new THREE.Points(dg, dm);
-    scene.add(dust);
-    junk.push(dg, dm);
+    dust = new THREE.Points(dg, dm); scene.add(dust); junk.push(dg, dm);
   }
 
-  /* ---- drag to spin, with inertia, on pointer + touch ---- */
-  let rotY = 0, rotX = 0, velY = slowMo ? 0 : 0.0022, velX = 0;
-  let dragging = false, claimed = false, px = 0, py = 0, moved = 0;
+  const st = { velY: slowMo ? 0 : 0.0022, velX: 0 };
+  const isDragging = spinnable(canvas, document.getElementById('spinHint'), st);
+  let rotY = 0, rotX = 0;
 
-  const down = (e) => {
-    dragging = true; claimed = false; moved = 0;
-    px = e.clientX; py = e.clientY;
-    canvas.style.cursor = 'grabbing';
-  };
-  const move = (e) => {
-    if (!dragging) return;
-    const dx = e.clientX - px, dy = e.clientY - py;
-    moved += Math.abs(dx) + Math.abs(dy);
-    /* on touch, only take the gesture once it reads as horizontal —
-       a straight vertical swipe stays with the page so scroll survives */
-    if (!claimed) {
-      if (e.pointerType === 'touch' && Math.abs(dy) > Math.abs(dx) * 1.25 && Math.abs(dy) > 6) { dragging = false; return; }
-      if (Math.abs(dx) + Math.abs(dy) > 3) {
-        claimed = true;
-        try { canvas.setPointerCapture(e.pointerId); } catch {}
-      }
-    }
-    px = e.clientX; py = e.clientY;
-    velY = dx * 0.0062;
-    velX = dy * 0.0045;
-    if (moved > 26) hint?.classList.add('gone');
-  };
-  const up = () => { dragging = false; claimed = false; canvas.style.cursor = 'grab'; };
-  canvas.addEventListener('pointerdown', down);
-  canvas.addEventListener('pointermove', move);
-  canvas.addEventListener('pointerup', up);
-  canvas.addEventListener('pointercancel', up);
-  canvas.addEventListener('pointerleave', up);
-  if (!slowMo) setTimeout(() => hint?.classList.add('gone'), 9000);
-
-  /* ---- sizing ---- */
   const resize = () => {
     const w = stage.clientWidth, h = stage.clientHeight;
     if (!w || !h) return;
@@ -1812,27 +2037,22 @@ async function boot() {
     camera.position.z = (w / h < 0.95) ? 9.4 : 7.9;
     camera.updateProjectionMatrix();
   };
-  new ResizeObserver(resize).observe(stage);
-  resize();
+  new ResizeObserver(resize).observe(stage); resize();
 
-  /* ---- loop, paused when the hero is off-screen ---- */
   const tick = () => {
-    if (!dragging) {
-      velY *= 0.945; velX *= 0.9;
-      if (!slowMo && Math.abs(velY) < 0.0022) velY += (0.0022 - velY) * 0.02;
+    if (!isDragging()) {
+      st.velY *= 0.945; st.velX *= 0.9;
+      if (!slowMo && Math.abs(st.velY) < 0.0022) st.velY += (0.0022 - st.velY) * 0.02;
     }
-    rotY += velY;
-    rotX = Math.max(-0.55, Math.min(0.55, rotX + velX));
+    rotY += st.velY;
+    rotX = Math.max(-0.55, Math.min(0.55, rotX + st.velX));
     pivot.rotation.y = rotY;
     pivot.rotation.x = -0.13 + rotX;
     if (dust) dust.rotation.y = rotY * 0.12;
     renderer.render(scene, camera);
   };
-  const vis = new IntersectionObserver((es) => {
-    renderer.setAnimationLoop(es[0].isIntersecting ? tick : null);
-  }, { threshold: 0 });
+  const vis = new IntersectionObserver((es) => renderer.setAnimationLoop(es[0].isIntersecting ? tick : null), { threshold: 0 });
   vis.observe(stage);
-
   stage.classList.add('live');
 
   addEventListener('pagehide', () => {
@@ -1840,7 +2060,134 @@ async function boot() {
     junk.forEach((o) => o.dispose?.());
     renderer.dispose();
   }, { once: true });
-}
+});
+
+/* ==================================================================
+   2. BELT STUDIO — a tied belt that takes the colour of the level
+   ================================================================== */
+gate(document.getElementById('beltStage'), async () => {
+  const THREE = await loadThree();
+  const stage = document.getElementById('beltStage');
+  const canvas = document.getElementById('belt3d');
+  const renderer = makeRenderer(THREE, canvas);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 40);
+  camera.position.set(0, 0.1, 7.0);
+
+  const pivot = new THREE.Group(), belt = new THREE.Group();
+  pivot.add(belt); scene.add(pivot);
+  belt.position.y = 0.72;
+  pivot.rotation.x = -0.06;
+
+  /* one material for the whole belt, so recolouring is a single lerp */
+  const fabric = new THREE.MeshStandardMaterial({
+    color: new THREE.Color('#F2F0EA'), roughness: 0.62, metalness: 0.06, side: THREE.DoubleSide
+  });
+  const junk = [fabric];
+
+  /* the waist loop — an open-ended cylinder makes a perfectly flat band */
+  const loopG = new THREE.CylinderGeometry(1.45, 1.45, 0.62, narrow ? 48 : 72, 1, true);
+  const loop = new THREE.Mesh(loopG, fabric);
+  loop.scale.x = 1.14;
+  belt.add(loop); junk.push(loopG);
+
+  /* the knot at the front */
+  const knotG = new THREE.TorusGeometry(0.2, 0.165, 14, narrow ? 26 : 40);
+  const knot = new THREE.Mesh(knotG, fabric);
+  knot.position.set(0, -0.06, 1.46);
+  knot.scale.set(1.5, 1.08, 0.8);
+  belt.add(knot); junk.push(knotG);
+
+  /* two hanging tails, bent down out of the knot like real fabric */
+  const tail = (dir) => {
+    const g = new THREE.PlaneGeometry(0.56, 2.1, 3, narrow ? 22 : 34);
+    const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i);
+      const t = (1.05 - y) / 2.1;                  // 0 at the knot, 1 at the tip
+      const sway = Math.sin(t * 3.0) * 0.17;
+      p.setXYZ(i,
+        x * (1 - 0.06 * t) + dir * (0.22 + sway),
+        -0.12 - t * 2.1,
+        1.44 + Math.sin(t * 2.1) * 0.24 + x * 0.12 * Math.sin(t * 4)
+      );
+    }
+    g.computeVertexNormals();
+    junk.push(g);
+    return new THREE.Mesh(g, fabric);
+  };
+  belt.add(tail(1), tail(-1));
+
+  scene.add(new THREE.AmbientLight(0xA9DFDA, 0.52));
+  const key = new THREE.DirectionalLight(0xFFFFFF, 1.9); key.position.set(2.6, 3.8, 4.4); scene.add(key);
+  const fill = new THREE.DirectionalLight(0xCFF3EC, 0.62); fill.position.set(-3, 1, 2); scene.add(fill);
+  /* mint rim, so a black belt still reads against the dark panel */
+  const rim = new THREE.PointLight(0x81DDCF, 20, 16, 2); rim.position.set(-2.4, 0.6, 2.6); scene.add(rim);
+  const rim2 = new THREE.PointLight(0xFFFFFF, 5, 12, 2); rim2.position.set(2.6, -1.2, 2.2); scene.add(rim2);
+
+  const st = { velY: 0, velX: 0 };
+  const isDragging = spinnable(canvas, document.getElementById('beltHint'), st);
+  let rotY = 0.42, rotX = 0, lastT = 0, lastDrag = 0;
+
+  /* colour handoff from the level card. Driven by elapsed time, not by
+     frame count, so the dye-through takes 550ms on any device.        */
+  const dye = { from: new THREE.Color('#F2F0EA'), to: new THREE.Color('#F2F0EA'), t0: -1, ms: 550 };
+  addEventListener('belt:change', (e) => {
+    dye.from.copy(fabric.color);
+    dye.to.set(e.detail.hex);
+    dye.t0 = performance.now();
+    const isBlack = e.detail.index === 5;
+    fabric.metalness = isBlack ? 0.22 : 0.06;   // black fabric needs sheen to stay legible
+    fabric.roughness = isBlack ? 0.44 : 0.62;
+    st.velY += 0.02;                            // a small nudge, so the swap feels physical
+  });
+
+  const resize = () => {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.position.z = (w / h < 1) ? 7.9 : 7.0;
+    camera.updateProjectionMatrix();
+  };
+  new ResizeObserver(resize).observe(stage); resize();
+
+  const tick = () => {
+    const now = performance.now();
+    const dt = lastT ? Math.min(3, (now - lastT) / 16.67) : 1;   // frame-rate normalised
+    lastT = now;
+    if (isDragging()) lastDrag = now;
+    else { st.velY *= Math.pow(0.95, dt); st.velX *= Math.pow(0.9, dt); }
+    rotY += st.velY * dt;
+    rotX = Math.max(-0.42, Math.min(0.42, rotX + st.velX * dt));
+    /* left alone it sways back to face you rather than spinning away —
+       this one is here to be read, not watched */
+    if (!slowMo && !isDragging() && now - lastDrag > 1600 && Math.abs(st.velY) < 0.004) {
+      const base = 0.42 + Math.sin(now / 4300) * 0.5;
+      rotY += (base - rotY) * Math.min(1, 0.02 * dt);
+      rotX += (0 - rotX) * Math.min(1, 0.018 * dt);
+    }
+    pivot.rotation.y = rotY;
+    pivot.rotation.x = -0.06 + rotX;
+    if (dye.t0 >= 0) {
+      const p = slowMo ? 1 : Math.min(1, (performance.now() - dye.t0) / dye.ms);
+      const e = 1 - Math.pow(1 - p, 3);
+      fabric.color.copy(dye.from).lerp(dye.to, e);
+      if (p === 1) dye.t0 = -1;
+    }
+    renderer.render(scene, camera);
+  };
+  const vis = new IntersectionObserver((es) => renderer.setAnimationLoop(es[0].isIntersecting ? tick : null), { threshold: 0 });
+  vis.observe(stage);
+  stage.classList.add('live');
+
+  addEventListener('pagehide', () => {
+    renderer.setAnimationLoop(null);
+    junk.forEach((o) => o.dispose?.());
+    renderer.dispose();
+  }, { once: true });
+});
 </script>
 </body>
 </html>
